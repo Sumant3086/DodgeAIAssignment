@@ -99,6 +99,15 @@ export default function GraphView({
     }
   }, [selectedNodeId, hoveredNode]);
 
+  const handleNodeClick = useCallback((node: any) => {
+    setSelectedNodeId(node.id === selectedNodeId ? null : node.id);
+    onNodeClick?.(node);
+  }, [selectedNodeId, onNodeClick]);
+
+  const handleNodeHover = useCallback((node: any) => {
+    setHoveredNode(node);
+  }, []);
+
   if (loading) return <div className="flex h-full w-full items-center justify-center p-8"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-200"></div></div>;
 
   return (
@@ -117,11 +126,8 @@ export default function GraphView({
                           hoveredNode?.id === link.source.id || hoveredNode?.id === link.target.id;
           return isRelated ? '#3b82f6' : 'rgba(148, 163, 184, 0.05)';
         }}
-        onNodeClick={(node: any) => {
-          setSelectedNodeId(node.id === selectedNodeId ? null : node.id);
-          onNodeClick?.(node);
-        }}
-        onNodeHover={(node) => setHoveredNode(node)}
+        onNodeClick={handleNodeClick}
+        onNodeHover={handleNodeHover}
         linkWidth={(link: any) => {
           const isRelated = selectedNodeId === link.source.id || selectedNodeId === link.target.id || 
                           hoveredNode?.id === link.source.id || hoveredNode?.id === link.target.id;
