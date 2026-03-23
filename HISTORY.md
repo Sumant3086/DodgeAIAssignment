@@ -24,3 +24,4 @@
 - Micro-update: Phase 23 of graph refinements
 - Micro-update: Phase 24 of graph refinements
 - Micro-update: Phase 25 of graph refinements
+- Micro-update: Phase 26 of graph refinements
