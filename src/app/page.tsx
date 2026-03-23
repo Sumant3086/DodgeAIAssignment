@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { MoreHorizontal, Minimize2, EyeOff } from 'lucide-react';
+import { MoreHorizontal, Minimize2, EyeOff, Columns2 } from 'lucide-react';
 import GraphView from '@/components/GraphView';
 import ChatInterface from '@/components/ChatInterface';
 
@@ -14,13 +14,13 @@ export default function Home() {
       {/* Top Navigation Bar */}
       <header className="h-14 border-b border-slate-100 bg-white flex items-center justify-between px-6 shrink-0 z-20">
         <div className="flex items-center gap-4">
-          <div className="w-6 h-6 border border-slate-300 rounded flex items-center justify-center">
-            <div className="w-3 h-3 border-l border-b border-slate-800"></div>
-          </div>
-          <span className="text-slate-400 font-medium">Mapping / <span className="text-slate-900 font-bold">Order to Cash</span></span>
+          <button className="w-8 h-8 flex items-center justify-center hover:bg-slate-50 rounded-lg transition-colors">
+            <Columns2 className="w-5 h-5 text-slate-400" />
+          </button>
+          <span className="text-slate-400 font-medium text-sm">Mapping / <span className="text-slate-900 font-bold">Order to Cash</span></span>
         </div>
-        <button className="p-2 hover:bg-slate-50 rounded-lg transition-colors">
-          <MoreHorizontal className="w-6 h-6 text-slate-800" />
+        <button className="w-9 h-9 bg-black rounded-lg flex items-center justify-center hover:bg-slate-800 transition-colors">
+          <MoreHorizontal className="w-5 h-5 text-white" />
         </button>
       </header>
 
@@ -46,30 +46,45 @@ export default function Home() {
           <div className="flex-1 relative bg-white overflow-hidden">
              <GraphView graphRef={graphRef} onNodeClick={(node) => setSelectedNode(node)} />
 
-             {/* Metadata Overlay Card (Floating near center) */}
+             {/* Metadata Overlay Card */}
              {selectedNode && (
-               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[340px] bg-white rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.12)] border border-slate-100 z-30 transition-all animate-in fade-in zoom-in duration-200">
-                 <div className="p-4">
-                    <div className="flex justify-between items-start mb-3">
-                      <h3 className="text-base font-bold text-slate-900">{selectedNode.group}</h3>
-                      <button onClick={() => setSelectedNode(null)} className="text-slate-300 hover:text-slate-500 font-bold text-lg leading-none">&times;</button>
+               <div className="absolute top-32 left-1/2 -translate-x-1/2 w-[340px] bg-white rounded-xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.15)] border border-slate-100 z-30 transition-all animate-in fade-in slide-in-from-top-4 duration-300">
+                 <div className="p-6">
+                    <div className="flex justify-between items-start mb-4">
+                      <h3 className="text-base font-bold text-blue-600">{selectedNode.group}</h3>
+                      <button onClick={() => setSelectedNode(null)} className="text-slate-300 hover:text-slate-500 transition-colors p-1">
+                        <Minimize2 className="w-4 h-4 rotate-45" />
+                      </button>
                     </div>
-                    <div className="space-y-1 text-[12px] leading-relaxed">
-                      <p><span className="text-slate-300">Entity:</span> <span className="text-slate-700 font-medium">{selectedNode.group}</span></p>
+                    <div className="space-y-2 text-[12px]">
+                      <div className="grid grid-cols-[100px_1fr] gap-x-2 items-baseline">
+                        <span className="text-slate-400 font-medium">Entity:</span> 
+                        <span className="text-slate-900 font-bold">{selectedNode.group}</span>
+                      </div>
+                      
                       {Object.entries(selectedNode).map(([key, value]) => {
                         if (['id', 'x', 'y', 'index', 'vx', 'vy', 'group', 'label', 'amount', 'currency', 'color', 'val'].some(k => key.toLowerCase().includes(k))) return null;
                         return (
-                          <p key={key}>
-                            <span className="text-slate-300 capitalize">{key}:</span> <span className="text-slate-700 font-medium">{String(value)}</span>
-                          </p>
+                          <div key={key} className="grid grid-cols-[100px_1fr] gap-x-2 items-baseline">
+                            <span className="text-slate-400 font-medium capitalize">{key}:</span> 
+                            <span className="text-slate-900 font-bold break-all">{String(value)}</span>
+                          </div>
                         );
                       })}
+                      
                       {selectedNode.amount && (
-                         <p><span className="text-slate-300">Amount:</span> <span className="text-slate-700 font-medium">{selectedNode.amount} {selectedNode.currency}</span></p>
+                         <div className="grid grid-cols-[100px_1fr] gap-x-2 items-baseline">
+                            <span className="text-slate-400 font-medium">Amount:</span> 
+                            <span className="text-slate-900 font-bold">{selectedNode.amount} {selectedNode.currency}</span>
+                         </div>
                       )}
-                      <div className="pt-2 mt-2 border-t border-slate-50">
-                        <p className="text-slate-300 italic text-[10px]">Additional fields hidden for readability</p>
-                        <p className="text-slate-700 font-semibold mt-1">Connections: {selectedNode.group === 'Payment' ? 1 : 2}</p>
+                      
+                      <div className="pt-4 mt-4 border-t border-slate-100">
+                        <p className="text-slate-300 italic text-[11px] mb-2 leading-tight">Additional fields hidden for readability</p>
+                        <div className="flex items-center gap-2">
+                           <span className="text-slate-900 font-bold">Connections:</span>
+                           <span className="text-slate-900 font-bold">{selectedNode.group === 'Payment' ? 1 : 2}</span>
+                        </div>
                       </div>
                     </div>
                  </div>

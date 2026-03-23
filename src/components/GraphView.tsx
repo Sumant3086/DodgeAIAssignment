@@ -15,22 +15,24 @@ export default function GraphView({
   const [data, setData] = useState({ nodes: [], links: [] });
   const [loading, setLoading] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [showLabels, setShowLabels] = useState(true);
+  const [hoveredNode, setHoveredNode] = useState<any>(null);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
   // Expose controls to parent
   useEffect(() => {
     if (graphRef) {
       graphRef.current = {
         zoomToFit: () => {
-          if (containerRef.current && (graphRef.current as any).fg) {
-            (graphRef.current as any).fg.zoomToFit(400);
+          if (graphRef.current.fg) {
+            graphRef.current.fg.zoomToFit(400, 20);
           }
         },
         toggleLabels: () => setShowLabels(prev => !prev),
         center: () => {
-           if ((graphRef.current as any).fg) {
-              (graphRef.current as any).fg.centerAt(0, 0, 400);
+           if (graphRef.current.fg) {
+              graphRef.current.fg.centerAt(0, 0, 400);
            }
         }
       };
@@ -63,72 +65,101 @@ export default function GraphView({
     }
   }, [loading, data]);
 
+  // Robust Resize Observation
   useEffect(() => {
-    const handleResize = () => {
-      if (containerRef.current) {
+    if (!containerRef.current) return;
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (let entry of entries) {
         setDimensions({
-          width: containerRef.current.clientWidth,
-          height: containerRef.current.clientHeight
+          width: entry.contentRect.width,
+          height: entry.contentRect.height
         });
+        // Re-center on significant resize to prevent blank space
+        if (graphRef?.current?.fg) {
+          graphRef.current.fg.zoomToFit(400, 50);
+        }
       }
-    };
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+    });
+    resizeObserver.observe(containerRef.current);
+    return () => resizeObserver.disconnect();
+  }, [loading]);
 
   const getNodeColor = useCallback((node: any) => {
+    const isHighlighted = selectedNodeId === node.id || hoveredNode?.id === node.id;
+    if (isHighlighted) return '#3b82f6'; // Bright Blue focus
+
     switch (node.group) {
-      case 'Customer': return '#e11d48'; // Rose
-      case 'SalesOrder': return '#2563eb'; // Blue
+      case 'Customer': return '#3b82f6'; // Blue
+      case 'SalesOrder': return '#3b82f6'; // Blue
       case 'Product': return '#10b981'; // Emerald
       case 'Delivery': return '#f59e0b'; // Amber
-      case 'Billing': return '#8b5cf6'; // Violet
-      case 'JournalEntry': return '#06b6d4'; // Cyan
-      case 'Payment': return '#059669'; // Green
-      default: return '#9ca3af'; // Gray
+      case 'Billing': return '#ef4444'; // Red
+      case 'JournalEntry': return '#ef4444'; // Red
+      default: return '#94a3b8'; // Slate
     }
-  }, []);
+  }, [selectedNodeId, hoveredNode]);
 
   if (loading) return <div className="flex h-full w-full items-center justify-center p-8"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-200"></div></div>;
 
   return (
     <div ref={containerRef} className="h-full w-full bg-white relative overflow-hidden">
       <ForceGraph2D
-        ref={(el: any) => { if (graphRef) graphRef.current.fg = el; }}
+        ref={(el: any) => { if (graphRef && graphRef.current) graphRef.current.fg = el; }}
         width={dimensions.width}
         height={dimensions.height}
         graphData={data}
         nodeColor={getNodeColor}
         nodeLabel={(node: any) => node.label || node.id}
-        nodeRelSize={4.5}
-        linkDirectionalArrowLength={3}
-        linkDirectionalArrowRelPos={1}
-        linkColor={() => 'rgba(148, 163, 184, 0.12)'}
-        onNodeClick={(node) => onNodeClick?.(node)}
-        linkWidth={1}
+        nodeRelSize={2.5}
+        linkDirectionalArrowLength={0}
+        linkColor={(link: any) => {
+          const isRelated = selectedNodeId === link.source.id || selectedNodeId === link.target.id || 
+                          hoveredNode?.id === link.source.id || hoveredNode?.id === link.target.id;
+          return isRelated ? '#3b82f6' : 'rgba(148, 163, 184, 0.05)';
+        }}
+        onNodeClick={(node: any) => {
+          setSelectedNodeId(node.id === selectedNodeId ? null : node.id);
+          onNodeClick?.(node);
+        }}
+        onNodeHover={(node) => setHoveredNode(node)}
+        linkWidth={(link: any) => {
+          const isRelated = selectedNodeId === link.source.id || selectedNodeId === link.target.id || 
+                          hoveredNode?.id === link.source.id || hoveredNode?.id === link.target.id;
+          return isRelated ? 1.5 : 0.5;
+        }}
         d3AlphaDecay={0.012}
         d3VelocityDecay={0.2}
         cooldownTicks={150}
         onEngineStop={() => {
            if (graphRef?.current?.fg) {
-              graphRef.current.fg.zoomToFit(600, 20);
+              graphRef.current.fg.zoomToFit(600, 50);
            }
         }}
         nodeCanvasObject={(node: any, ctx, globalScale) => {
-          const fontSize = 11 / globalScale;
+          const isSelected = selectedNodeId === node.id;
+          const isHovered = hoveredNode?.id === node.id;
+          const size = isSelected || isHovered ? 4 : 2;
+          
+          if (isSelected) {
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, size * 2.5, 0, 2 * Math.PI, false);
+            ctx.fillStyle = 'rgba(59, 130, 246, 0.15)';
+            ctx.fill();
+          }
+
           ctx.beginPath();
-          ctx.arc(node.x, node.y, 4, 0, 2 * Math.PI, false);
+          ctx.arc(node.x, node.y, size, 0, 2 * Math.PI, false);
           ctx.fillStyle = getNodeColor(node);
           ctx.fill();
 
-          if (showLabels && globalScale > 1.8) {
+          if (showLabels && globalScale > 2.2) {
              const label = node.label || node.id;
-             ctx.font = `${fontSize}px Inter, sans-serif`;
+             const fontSize = 10 / globalScale;
+             ctx.font = `500 ${fontSize}px Inter, sans-serif`;
              ctx.textAlign = 'center';
              ctx.textBaseline = 'middle';
-             ctx.fillStyle = 'rgba(15, 23, 42, 0.5)';
-             ctx.fillText(label, node.x, node.y + 9);
+             ctx.fillStyle = isSelected ? '#0f172a' : 'rgba(100, 116, 139, 0.5)';
+             ctx.fillText(label, node.x, node.y + (size + 5));
           }
         }}
       />

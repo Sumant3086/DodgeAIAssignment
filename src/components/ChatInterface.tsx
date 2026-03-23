@@ -63,30 +63,34 @@ export default function ChatInterface() {
         <p className="text-[11px] text-slate-400 font-medium">Order to Cash</p>
       </div>
       
-      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
+      <div className="flex-1 overflow-y-auto px-6 py-8 space-y-8">
         {messages.map((msg) => (
-          <div key={msg.id} className="flex flex-col gap-2">
-            <div className={`flex items-center gap-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              {msg.role === 'assistant' ? (
-                <>
-                  <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center shrink-0">
-                    <span className="text-white font-bold text-sm">D</span>
-                  </div>
-                  <div>
-                    <p className="text-[13px] font-bold text-slate-900 leading-none">Dodge Al</p>
-                    <p className="text-[10px] text-slate-400 font-medium">Graph Agent</p>
-                  </div>
-                </>
-              ) : (
-                <p className="text-[13px] font-bold text-slate-900">You</p>
-              )}
+          <div key={msg.id} className="flex flex-col gap-3">
+            <div className={`flex items-center gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+              <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
+                msg.role === 'assistant' ? 'bg-black' : 'bg-slate-200'
+              }`}>
+                {msg.role === 'assistant' ? (
+                  <span className="text-white font-bold text-sm">D</span>
+                ) : (
+                  <User className="w-5 h-5 text-slate-500" />
+                )}
+              </div>
+              <div className={msg.role === 'user' ? 'text-right' : 'text-left'}>
+                <p className="text-[13px] font-bold text-slate-900 leading-tight">
+                  {msg.role === 'assistant' ? 'Dodge Al' : 'You'}
+                </p>
+                <p className="text-[10px] text-slate-400 font-medium lowercase">
+                  {msg.role === 'assistant' ? 'Graph Agent' : ''}
+                </p>
+              </div>
             </div>
             
             <div className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`px-4 py-3 rounded-xl max-w-[90%] text-[13px] leading-relaxed ${
+              <div className={`px-5 py-3.5 rounded-2xl max-w-[85%] text-[13px] leading-relaxed shadow-sm ${
                 msg.role === 'user' 
                   ? 'bg-black text-white rounded-tr-none' 
-                  : 'bg-slate-50 text-slate-800 border border-slate-100 rounded-tl-none'
+                  : 'bg-white text-slate-800 border border-slate-100 rounded-tl-none'
               }`}>
                 {msg.content}
               </div>
@@ -94,14 +98,14 @@ export default function ChatInterface() {
           </div>
         ))}
         {isLoading && (
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center shrink-0">
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-black flex items-center justify-center shrink-0">
                 <span className="text-white font-bold text-sm">D</span>
               </div>
                <div>
-                <p className="text-[13px] font-bold text-slate-900 leading-none">Dodge Al</p>
-                <p className="text-[10px] text-slate-400 font-medium font-medium">Thinking...</p>
+                <p className="text-[13px] font-bold text-slate-900 leading-tight">Dodge Al</p>
+                <p className="text-[10px] text-slate-400 font-medium">Thinking...</p>
               </div>
             </div>
           </div>
@@ -110,18 +114,18 @@ export default function ChatInterface() {
       </div>
 
       <div className="p-6 pt-2">
-        <div className="mb-2 flex items-center gap-2">
-           <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+        <div className="mb-3 flex items-center gap-2 px-1">
+           <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]"></div>
            <span className="text-[11px] text-slate-400 font-medium">Dodge Al is awaiting instructions</span>
         </div>
-        <form onSubmit={handleSubmit} className="relative bg-slate-50 rounded-xl border border-slate-100 p-1">
+        <form onSubmit={handleSubmit} className="relative bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden focus-within:border-slate-300 transition-colors">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             disabled={isLoading}
             placeholder="Analyze anything"
             rows={3}
-            className="w-full bg-transparent border-none rounded-lg p-3 text-[13px] focus:outline-none transition-all placeholder:text-slate-400 resize-none text-slate-900"
+            className="w-full bg-transparent border-none p-4 text-[13px] focus:outline-none transition-all placeholder:text-slate-300 resize-none text-slate-900 leading-relaxed"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -129,13 +133,15 @@ export default function ChatInterface() {
               }
             }}
           />
-          <div className="flex justify-end p-2 pt-0">
+          <div className="flex justify-end p-3 bg-slate-50/50 border-t border-slate-50">
             <button 
               type="submit" 
               disabled={!input.trim() || isLoading}
-              className="px-4 py-2 bg-slate-400 text-white text-xs font-bold rounded-lg hover:bg-slate-500 disabled:opacity-50 transition-colors"
+              className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all ${
+                input.trim() ? 'bg-black text-white' : 'bg-slate-200 text-slate-400'
+              }`}
             >
-              Send
+              <Send className="w-4 h-4" />
             </button>
           </div>
         </form>
