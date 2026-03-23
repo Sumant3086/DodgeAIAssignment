@@ -99,7 +99,7 @@ export default function GraphView({ onNodeClick }: { onNodeClick?: (node: any) =
       />
       <div className="absolute top-4 left-4 bg-white/90 backdrop-blur p-4 rounded-lg shadow-sm border border-slate-200 text-sm">
         <h3 className="font-semibold text-slate-800 mb-2">Legend</h3>
-        <ul className="space-y-1">
+        <ul className="space-y-1 text-slate-700 font-medium">
           <li className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-rose-600"></div>Customer</li>
           <li className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-blue-600"></div>Sales Order</li>
           <li className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-emerald-500"></div>Product</li>
