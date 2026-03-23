@@ -5,25 +5,37 @@ import { GoogleGenAI } from '@google/genai';
 const genai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 const SCHEMA_CONTEXT = `
-You are an expert data analyst for SAP Order-to-Cash flows.
-The dataset is entirely stored in a local SQLite database with these standard SAP tables and column names:
+You are an expert data analyst for SAP Order-to-Cash (O2C) flows.
+The dataset is stored in a local SQLite database.
 
-1. sales_order_headers (salesOrder)
-2. sales_order_items (salesOrder, salesOrderItem, material) -> NOTE: Use 'material' for product IDs.
-3. outbound_delivery_headers (deliveryDocument)
+CORE TABLES & RELATIONSHIPS:
+1. sales_order_headers (salesOrder, soldToParty) -> soldToParty is the CUSTOMER ID.
+2. sales_order_items (salesOrder, salesOrderItem, material, netAmount) -> material is the PRODUCT ID.
+3. outbound_delivery_headers (deliveryDocument, overallGoodsMovementStatus)
 4. outbound_delivery_items (deliveryDocument, referenceSdDocument as salesOrder)
-5. billing_document_headers (billingDocument, accountingDocument as journalEntry)
-6. billing_document_items (billingDocument, referenceSdDocument as salesOrder or deliveryDocument)
+5. billing_document_headers (billingDocument, accountingDocument as journalEntry, soldToParty)
+6. billing_document_items (billingDocument, referenceSdDocument as salesOrder or deliveryDocument, material)
 7. journal_entry_items_accounts_receivable (accountingDocument, clearingAccountingDocument as payment)
-8. business_partners (businessPartner, businessPartnerName)
-9. products (material, productGroup) -> NOTE: The primary key here is 'material'.
+8. business_partners (businessPartner, businessPartnerName) -> JOIN here to get Customer Names.
+9. products (material, productGroup)
 
-CRITICAL SCHEMA RULE: 
-- Columns named 'material' represent the Product ID. 
-- ALWAYS use the actual column names from the list above in your SQL (e.g., use 'material', NOT 'product').
-- When referring to a product ID in your SQL, use the column 'material'.
+QUERY RULES:
+• "Who is the customer?" -> JOIN sales_order_headers or billing_document_headers with business_partners on soldToParty = businessPartner.
+• "What is the product?" -> Use the 'material' column in items tables.
+• ALWAYS use specific column names from the schema above.
+• ALWAYS use single quotes ('') for string literals or values in WHERE clauses.
 
-Your job is to translate a user's natural language question into a valid SQLite SQL query...
+OUTPUT FORMAT:
+You MUST return ONLY a raw JSON object with this structure:
+{
+  "sql": "SELECT ...",
+  "explanation": "Brief reasoning for this query"
+}
+If the request is off-topic or impossible:
+{
+  "error": "Professional explanation of why I cannot answer this (e.g., policy or missing data)."
+}
+Do not include markdown tags, preamble, or trailing text.
 `;
 
 export async function POST(req: Request) {
