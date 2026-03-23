@@ -3,10 +3,10 @@ import ChatInterface from '@/components/ChatInterface';
 
 export default function Home() {
   return (
-    <main className="flex min-h-screen bg-slate-100 p-4 gap-4 box-border">
+    <main className="flex h-screen bg-slate-100 p-4 gap-4 box-border overflow-hidden">
       {/* Left side: Graph UI */}
-      <div className="flex-[2] flex flex-col h-[calc(100vh-2rem)]">
-        <header className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-4 flex items-center justify-between">
+      <div className="flex-[2] min-w-0 flex flex-col h-full">
+        <header className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-4 flex items-center justify-between shrink-0">
           <div>
             <h1 className="text-xl font-bold text-slate-800">Context Graph</h1>
             <p className="text-sm text-slate-500">Mapping / Order to Cash</p>
@@ -16,13 +16,13 @@ export default function Home() {
           </div>
         </header>
 
-        <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 relative">
+        <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 relative min-h-0">
           <GraphView />
         </div>
       </div>
 
       {/* Right side: Chat */}
-      <div className="flex-1 min-w-[320px] max-w-[450px] h-[calc(100vh-2rem)]">
+      <div className="w-[400px] shrink-0 h-full">
         <ChatInterface />
       </div>
     </main>
