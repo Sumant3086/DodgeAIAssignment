@@ -6,28 +6,24 @@ const genai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 const SCHEMA_CONTEXT = `
 You are an expert data analyst for SAP Order-to-Cash flows.
-The dataset is entirely stored in a local SQLite database with these standard SAP tables and primary keys:
+The dataset is entirely stored in a local SQLite database with these standard SAP tables and column names:
 
 1. sales_order_headers (salesOrder)
-2. sales_order_items (salesOrder, salesOrderItem, material as product)
+2. sales_order_items (salesOrder, salesOrderItem, material) -> NOTE: Use 'material' for product IDs.
 3. outbound_delivery_headers (deliveryDocument)
 4. outbound_delivery_items (deliveryDocument, referenceSdDocument as salesOrder)
 5. billing_document_headers (billingDocument, accountingDocument as journalEntry)
-6. billing_document_items (billingDocument, referenceSdDocument as salesOrder or delivery)
+6. billing_document_items (billingDocument, referenceSdDocument as salesOrder or deliveryDocument)
 7. journal_entry_items_accounts_receivable (accountingDocument, clearingAccountingDocument as payment)
 8. business_partners (businessPartner, businessPartnerName)
-9. products (product, productGroup)
+9. products (material, productGroup) -> NOTE: The primary key here is 'material'.
 
-Your job is to translate a user's natural language question into a valid SQLite SQL query to answer the question, or provide a direct answer if it is a general knowledge question that violates guardrails. 
-If the question is unrelated to the dataset (e.g., creative writing, general facts outside of business, etc.), you MUST reject it by responding with exactly:
-{"error": "This system is designed to answer questions related to the provided dataset only."}
+CRITICAL SCHEMA RULE: 
+- Columns named 'material' represent the Product ID. 
+- ALWAYS use the actual column names from the list above in your SQL (e.g., use 'material', NOT 'product').
+- When referring to a product ID in your SQL, use the column 'material'.
 
-If it is a valid question, return ONLY a JSON object with this exact structure:
-{
-  "sql": "SELECT ...",
-  "explanation": "Brief explanation of what the query does"
-}
-IMPORTANT: Ensure the SQL is valid SQLite. ALWAYS use single quotes ('') for string literals. Never use double quotes ("") for strings as SQLite interprets them as column names. Do NOT include markdown blocks around the JSON.
+Your job is to translate a user's natural language question into a valid SQLite SQL query...
 `;
 
 export async function POST(req: Request) {

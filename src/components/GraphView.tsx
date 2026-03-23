@@ -64,49 +64,38 @@ export default function GraphView({ onNodeClick }: { onNodeClick?: (node: any) =
   if (loading) return <div className="flex h-full w-full items-center justify-center p-8"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div></div>;
 
   return (
-    <div ref={containerRef} className="h-full w-full bg-slate-50 relative overflow-hidden rounded-xl border border-slate-200 shadow-sm">
+    <div ref={containerRef} className="h-full w-full bg-white relative overflow-hidden">
       <ForceGraph2D
         width={dimensions.width}
         height={dimensions.height}
         graphData={data}
         nodeColor={getNodeColor}
         nodeLabel={(node: any) => node.label || node.id}
-        nodeRelSize={6}
-        linkDirectionalArrowLength={3.5}
+        nodeRelSize={4}
+        linkDirectionalArrowLength={3}
         linkDirectionalArrowRelPos={1}
-        linkColor={() => '#94a3b8'}
+        linkColor={() => 'rgba(148, 163, 184, 0.2)'}
         onNodeClick={(node) => onNodeClick?.(node)}
-        linkWidth={1.5}
+        linkWidth={1}
         nodeCanvasObject={(node: any, ctx, globalScale) => {
-          const label = node.label || node.id;
-          const fontSize = 12 / globalScale;
-          ctx.font = `${fontSize}px Inter, sans-serif`;
-          const textWidth = ctx.measureText(label).width;
-          const bckgDimensions = [textWidth, fontSize].map(n => n + fontSize * 0.2); 
-
-          ctx.fillStyle = getNodeColor(node);
+          const fontSize = 11 / globalScale;
           ctx.beginPath();
-          ctx.arc(node.x, node.y, 4, 0, 2 * Math.PI, false);
+          ctx.arc(node.x, node.y, 3, 0, 2 * Math.PI, false);
+          ctx.fillStyle = getNodeColor(node);
           ctx.fill();
 
-          if (globalScale > 1.5) {
+          if (globalScale > 2.5) {
+             const label = node.label || node.id;
+             ctx.font = `${fontSize}px Inter, sans-serif`;
              ctx.textAlign = 'center';
              ctx.textBaseline = 'middle';
-             ctx.fillStyle = '#1e293b';
-             ctx.fillText(label, node.x, node.y + 8);
+             ctx.fillStyle = 'rgba(30, 41, 59, 0.8)';
+             ctx.fillText(label, node.x, node.y + 7);
           }
         }}
       />
-      <div className="absolute top-4 left-4 bg-white/90 backdrop-blur p-4 rounded-lg shadow-sm border border-slate-200 text-sm">
-        <h3 className="font-semibold text-slate-800 mb-2">Legend</h3>
-        <ul className="space-y-1 text-slate-700 font-medium">
-          <li className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-rose-600"></div>Customer</li>
-          <li className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-blue-600"></div>Sales Order</li>
-          <li className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-emerald-500"></div>Product</li>
-          <li className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-amber-500"></div>Delivery</li>
-          <li className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-violet-500"></div>Invoice</li>
-          <li className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-cyan-500"></div>Journal Entry</li>
-        </ul>
+      <div className="absolute bottom-6 right-6 bg-white/80 backdrop-blur px-3 py-2 rounded-lg border border-slate-100 shadow-sm text-[10px] text-slate-400 font-medium">
+        Interactive Force Graph
       </div>
     </div>
   );
