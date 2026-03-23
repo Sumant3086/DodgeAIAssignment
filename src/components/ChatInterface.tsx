@@ -96,7 +96,7 @@ export default function ChatInterface() {
             onChange={(e) => setInput(e.target.value)}
             disabled={isLoading}
             placeholder="Ask about the flows..."
-            className="w-full bg-slate-50 border border-slate-200 rounded-full pl-4 pr-12 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400"
+            className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-full pl-4 pr-12 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400"
           />
           <button 
             type="submit" 
