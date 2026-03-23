@@ -1,5 +1,11 @@
 Dodge AI Graph Query System
 
+Working Demo
+https://dodgeaiassignment.onrender.com/
+
+GitHub Repository
+https://github.com/Sumant3086/DodgeAIAssignment
+
 Overview
 This project processes a raw SAP Order-to-Cash dataset into an interactive Context Graph and features an LLM-powered chat interface to query relationships via Natural Language.
 
@@ -12,7 +18,7 @@ Before initializing the graph, raw JSONL data is processed and inserted into a l
 
 Why SQLite?
 • Zero Configuration: No separate database servers are needed. The database is generated and queried natively in Node.js.
-• Relational Graph Modeling: Complex SAP dependencies (e.g. SalesOrder -> Delivery -> Billing -> Journal) map flawlessly to relational tables. 
+• Relational Graph Modeling: Complex SAP dependencies map flawlessly to relational tables. 
 
 LLM Prompts & Strategy
 We use Google Gemini 2.5 Flash (@google/genai). The strategy is a 3-phase Text-to-SQL Pipeline:
