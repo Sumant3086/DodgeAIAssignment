@@ -99,6 +99,15 @@ export default function GraphView({
     }
   }, [selectedNodeId, hoveredNode]);
 
+  const fgRef = useRef<any>(null);
+
+  // Sync internal fgRef with external graphRef
+  useEffect(() => {
+    if (graphRef && graphRef.current) {
+      graphRef.current.fg = fgRef.current;
+    }
+  }, [graphRef]);
+
   const handleNodeClick = useCallback((node: any) => {
     setSelectedNodeId(node.id === selectedNodeId ? null : node.id);
     onNodeClick?.(node);
@@ -113,7 +122,7 @@ export default function GraphView({
   return (
     <div ref={containerRef} className="h-full w-full bg-white relative overflow-hidden">
       <ForceGraph2D
-        ref={(el: any) => { if (graphRef && graphRef.current) graphRef.current.fg = el; }}
+        ref={fgRef}
         width={dimensions.width}
         height={dimensions.height}
         graphData={data}
