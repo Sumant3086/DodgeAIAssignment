@@ -4,9 +4,9 @@ import { getDb } from '@/lib/db';
 export async function GET() {
   try {
     const db = getDb();
-    const nodes = [];
-    const links = [];
-    const nodeIds = new Set();
+    const nodes: any[] = [];
+    const links: any[] = [];
+    const nodeIds = new Set<string>();
 
     function addNode(id: string, group: string, label: string, details: any = {}) {
       if (!id || nodeIds.has(id)) return;
@@ -80,7 +80,7 @@ export async function GET() {
     }
 
     // 6. Payments
-    const payments = db.prepare('SELECT accountingDocument, clearingAccountingDocument FROM journal_entry_items_accounts_receivable WHERE clearingAccountingDocument IS NOT NULL AND clearingAccountingDocument != "" LIMIT 1000').all();
+    const payments = db.prepare("SELECT accountingDocument, clearingAccountingDocument FROM journal_entry_items_accounts_receivable WHERE clearingAccountingDocument IS NOT NULL AND clearingAccountingDocument != '' LIMIT 1000").all();
     for (const p of payments) {
       addNode(p.clearingAccountingDocument, 'Payment', `Payment ${p.clearingAccountingDocument}`);
       addLink(p.accountingDocument, p.clearingAccountingDocument, 'Cleared By');
