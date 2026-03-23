@@ -5,11 +5,37 @@ import dynamic from 'next/dynamic';
 
 const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), { ssr: false });
 
-export default function GraphView({ onNodeClick }: { onNodeClick?: (node: any) => void }) {
+export default function GraphView({ 
+  onNodeClick, 
+  graphRef 
+}: { 
+  onNodeClick?: (node: any) => void;
+  graphRef?: any;
+}) {
   const [data, setData] = useState({ nodes: [], links: [] });
   const [loading, setLoading] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
+  const [showLabels, setShowLabels] = useState(true);
+
+  // Expose controls to parent
+  useEffect(() => {
+    if (graphRef) {
+      graphRef.current = {
+        zoomToFit: () => {
+          if (containerRef.current && (graphRef.current as any).fg) {
+            (graphRef.current as any).fg.zoomToFit(400);
+          }
+        },
+        toggleLabels: () => setShowLabels(prev => !prev),
+        center: () => {
+           if ((graphRef.current as any).fg) {
+              (graphRef.current as any).fg.centerAt(0, 0, 400);
+           }
+        }
+      };
+    }
+  }, [graphRef]);
 
   useEffect(() => {
     fetch('/api/graph')
@@ -30,12 +56,14 @@ export default function GraphView({ onNodeClick }: { onNodeClick?: (node: any) =
   }, []);
 
   useEffect(() => {
-    if (containerRef.current) {
-      setDimensions({
-        width: containerRef.current.clientWidth,
-        height: containerRef.current.clientHeight
-      });
+    if (!loading && data.nodes.length > 0 && graphRef?.current?.fg) {
+       setTimeout(() => {
+          graphRef.current.fg.zoomToFit(400, 20); // Less padding to fill more space
+       }, 500);
     }
+  }, [loading, data]);
+
+  useEffect(() => {
     const handleResize = () => {
       if (containerRef.current) {
         setDimensions({
@@ -44,6 +72,7 @@ export default function GraphView({ onNodeClick }: { onNodeClick?: (node: any) =
         });
       }
     };
+    handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -61,36 +90,45 @@ export default function GraphView({ onNodeClick }: { onNodeClick?: (node: any) =
     }
   }, []);
 
-  if (loading) return <div className="flex h-full w-full items-center justify-center p-8"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div></div>;
+  if (loading) return <div className="flex h-full w-full items-center justify-center p-8"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-200"></div></div>;
 
   return (
     <div ref={containerRef} className="h-full w-full bg-white relative overflow-hidden">
       <ForceGraph2D
+        ref={(el: any) => { if (graphRef) graphRef.current.fg = el; }}
         width={dimensions.width}
         height={dimensions.height}
         graphData={data}
         nodeColor={getNodeColor}
         nodeLabel={(node: any) => node.label || node.id}
-        nodeRelSize={4}
+        nodeRelSize={4.5}
         linkDirectionalArrowLength={3}
         linkDirectionalArrowRelPos={1}
-        linkColor={() => 'rgba(148, 163, 184, 0.2)'}
+        linkColor={() => 'rgba(148, 163, 184, 0.12)'}
         onNodeClick={(node) => onNodeClick?.(node)}
         linkWidth={1}
+        d3AlphaDecay={0.012}
+        d3VelocityDecay={0.2}
+        cooldownTicks={150}
+        onEngineStop={() => {
+           if (graphRef?.current?.fg) {
+              graphRef.current.fg.zoomToFit(600, 20);
+           }
+        }}
         nodeCanvasObject={(node: any, ctx, globalScale) => {
           const fontSize = 11 / globalScale;
           ctx.beginPath();
-          ctx.arc(node.x, node.y, 3, 0, 2 * Math.PI, false);
+          ctx.arc(node.x, node.y, 4, 0, 2 * Math.PI, false);
           ctx.fillStyle = getNodeColor(node);
           ctx.fill();
 
-          if (globalScale > 2.5) {
+          if (showLabels && globalScale > 1.8) {
              const label = node.label || node.id;
              ctx.font = `${fontSize}px Inter, sans-serif`;
              ctx.textAlign = 'center';
              ctx.textBaseline = 'middle';
-             ctx.fillStyle = 'rgba(30, 41, 59, 0.8)';
-             ctx.fillText(label, node.x, node.y + 7);
+             ctx.fillStyle = 'rgba(15, 23, 42, 0.5)';
+             ctx.fillText(label, node.x, node.y + 9);
           }
         }}
       />
