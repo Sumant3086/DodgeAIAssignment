@@ -43,8 +43,20 @@ Detailed documentation of the development process, visual refinements, and final
 • Project Walkthrough: A comprehensive look at the final implementation, layout fixes, and visual parity refinements.
 • Verification Media: Screenshots and recordings of the system in action are stored in ./sessions/.
 
-Features
-• Interactive Graph: Full-bleed Canvas-based visualization of SAP Order-to-Cash flows.
-• AI Context Query: Ask natural language questions about your business data and get technically grounded, SQL-backed answers.
-• Visual Highlighting: Select nodes to focus on specific transaction paths with dynamic path highlighting.
-• Layout Robustness: Responsive design that adapts to laptop and desktop resolutions without gaps.
+Example Queries
+You can interact with the system using natural language. For best results, include specific IDs (e.g., Sales Order 740506).
+
+• Simple Lookup: "Who is the customer for order 740518?"
+  Expected: Direct identification of the customer linked to that specific order.
+
+• Process Trace: "Show me the delivery and billing details for sales order 740506."
+  Expected: A summary of the linked outbound delivery and billing document records.
+
+• Financial Insights: "What is the total amount for all billing documents?"
+  Expected: A calculation of the sum of all transaction values in the database.
+
+• Guardrail Test: "Ask it to write a poem or a recipe."
+  Expected: A professional denial stating the system is restricted to SAP data queries only.
+
+Prompting Format
+There is no strict format required. The system is designed to handle conversational English, but including exact IDs and entity names (Customer, Sales Order, Billing) will result in higher precision.
