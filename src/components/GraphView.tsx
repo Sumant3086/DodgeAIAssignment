@@ -15,7 +15,12 @@ export default function GraphView({ onNodeClick }: { onNodeClick?: (node: any) =
     fetch('/api/graph')
       .then((res) => res.json())
       .then((json) => {
-        setData(json);
+        if (json.error || !json.nodes) {
+          console.error('Graph API Error:', json.error);
+          setData({ nodes: [], links: [] });
+        } else {
+          setData(json);
+        }
         setLoading(false);
       })
       .catch((err) => {
