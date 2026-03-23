@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const genai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 const SCHEMA_CONTEXT = `
 You are an expert data analyst for SAP Order-to-Cash (O2C) flows.
@@ -48,27 +48,25 @@ export async function POST(req: Request) {
     }
 
     // Phase 1: Text to SQL
-    const response = await genai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: message,
-      config: {
-        systemInstruction: SCHEMA_CONTEXT,
-        temperature: 0.1,
-      }
+    const model = genAI.getGenerativeModel({ 
+      model: 'gemini-1.5-flash',
+      systemInstruction: SCHEMA_CONTEXT,
     });
 
-    const rawText = response.text || '';
+    const result = await model.generateContent(message);
+    const response = await result.response;
+    const rawText = response.text() || '';
     
     // Clean up markdown markers if LLM adds them
     let cleanedText = rawText.trim();
-    if (cleanedText.startsWith('\`\`\`json')) {
+    if (cleanedText.startsWith('```json')) {
       cleanedText = cleanedText.substring(7);
-      if (cleanedText.endsWith('\`\`\`')) {
+      if (cleanedText.endsWith('```')) {
         cleanedText = cleanedText.substring(0, cleanedText.length - 3);
       }
-    } else if (cleanedText.startsWith('\`\`\`')) {
+    } else if (cleanedText.startsWith('```')) {
       cleanedText = cleanedText.substring(3);
-      if (cleanedText.endsWith('\`\`\`')) {
+      if (cleanedText.endsWith('```')) {
         cleanedText = cleanedText.substring(0, cleanedText.length - 3);
       }
     }
@@ -119,13 +117,11 @@ If the results refer to document numbers, format them clearly. Mention explicitl
 Make the final answer directly address the question without showing the raw JSON.
 `;
 
-    const finalResponse = await genai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: finalPrompt,
-    });
+    const finalResult = await model.generateContent(finalPrompt);
+    const finalResponse = await finalResult.response;
 
     return NextResponse.json({ 
-      response: finalResponse.text,
+      response: finalResponse.text(),
       debug: { sql: parsedParams.sql, data: sqlResults }
     });
 
