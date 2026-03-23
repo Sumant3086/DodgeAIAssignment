@@ -8,3 +8,4 @@
 - Micro-update: Phase 7 of graph refinements
 - Micro-update: Phase 8 of graph refinements
 - Micro-update: Phase 9 of graph refinements
+- Micro-update: Phase 10 of graph refinements
