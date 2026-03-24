@@ -31,45 +31,108 @@ You MUST return ONLY a raw JSON object with this structure:
   "sql": "SELECT ...",
   "explanation": "Brief reasoning for this query"
 }
-If the request is off-topic or impossible:
-{
-  "error": "Professional explanation of why I cannot answer this (e.g., policy or missing data)."
-}
-Do not include markdown tags, preamble, or trailing text.
+If the request is off-topic or impossible: { "error": "Reason" }
+Do not include markdown tags.
 `;
+
+async function callLLM(systemPrompt: string, userPrompt: string): Promise<{ text: string, provider: string }> {
+  const isGroq = process.env.GROK_API_KEY?.startsWith('gsk_');
+  const useGrok = !!process.env.GROK_API_KEY;
+  const useGemini = !!process.env.GEMINI_API_KEY;
+
+  console.log(`[DEBUG] callLLM: useGrok=${useGrok}, isGroq=${isGroq}, useGemini=${useGemini}`);
+
+  // Try Primary (Grok/Groq)
+  if (useGrok) {
+    try {
+      const endpoint = isGroq ? 'https://api.groq.com/openai/v1/chat/completions' : 'https://api.x.ai/v1/chat/completions';
+      const model = isGroq ? 'llama-3.3-70b-versatile' : 'grok-beta';
+      const providerName = isGroq ? 'groq' : 'grok';
+      
+      console.log(`[DEBUG] Trying Grok/Groq: endpoint=${endpoint}, model=${model}`);
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.GROK_API_KEY}`
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          temperature: 0,
+          response_format: isGroq ? undefined : { type: 'json_object' }
+        })
+      });
+      const json = await response.json();
+      if (json.choices?.[0]?.message?.content) {
+        console.log(`[DEBUG] Grok/Groq Success: provider=${providerName}`);
+        return { text: json.choices[0].message.content, provider: providerName };
+      }
+      console.warn('[DEBUG] Grok/Groq failed to return content, falling back to Gemini:', JSON.stringify(json));
+    } catch (e: any) {
+      console.error('[DEBUG] Error calling Grok/Groq:', e.message);
+    }
+  }
+
+  // Try Fallback (Gemini)
+  if (useGemini) {
+    try {
+      console.log('[DEBUG] Trying Gemini: gemini-1.5-flash');
+      // Use gemini-1.5-flash as the most stable string for 1.5
+      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash', systemInstruction: systemPrompt });
+      const result = await model.generateContent(userPrompt);
+      const resp = await result.response;
+      console.log('[DEBUG] Gemini Success: gemini-1.5-flash');
+      return { text: resp.text(), provider: 'gemini-1.5-flash' };
+    } catch (e: any) {
+      console.error('[DEBUG] Gemini 1.5-flash failed:', e.message);
+      // Try gemini-1.5-flash-latest if gemini-1.5-flash 404s
+      if (e.message.includes('404') || e.message.includes('not found')) {
+        console.log('[DEBUG] Gemini 404 detected, trying gemini-1.5-flash-latest');
+        try {
+           const fallbackModel = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest', systemInstruction: systemPrompt });
+           const result = await fallbackModel.generateContent(userPrompt);
+           const resp = await result.response;
+           console.log('[DEBUG] Gemini Success: gemini-1.5-flash-latest');
+           return { text: resp.text(), provider: 'gemini-1.5-flash-latest' };
+        } catch (e2: any) {
+           console.error('[DEBUG] Gemini 1.5-flash-latest also failed:', e2.message);
+           console.log('[DEBUG] Trying stable gemini-pro');
+           const ultraFallback = genAI.getGenerativeModel({ model: 'gemini-pro' });
+           const result = await ultraFallback.generateContent(`${systemPrompt}\n\nUser Question: ${userPrompt}`);
+           const resp = await result.response;
+           console.log('[DEBUG] Gemini Success: gemini-pro');
+           return { text: resp.text(), provider: 'gemini-pro' };
+        }
+      }
+      throw e;
+    }
+  }
+
+  throw new Error('No functional LLM provider available.');
+}
 
 export async function POST(req: Request) {
   try {
     const { message } = await req.json();
     if (!message) return NextResponse.json({ error: 'Message required' }, { status: 400 });
 
-    if (!process.env.GEMINI_API_KEY) {
-      return NextResponse.json({ response: 'API Key not configured. Please set GEMINI_API_KEY in .env.local' });
+    const useGrok = !!process.env.GROK_API_KEY;
+    const canUseGemini = !!process.env.GEMINI_API_KEY;
+
+    if (!useGrok && !canUseGemini) {
+      return NextResponse.json({ response: 'No API Keys configured. Please set GEMINI_API_KEY or GROK_API_KEY.' });
     }
 
     // Phase 1: Text to SQL
-    const model = genAI.getGenerativeModel({ 
-      model: 'gemini-1.5-flash',
-      systemInstruction: SCHEMA_CONTEXT,
-    });
-
-    const result = await model.generateContent(message);
-    const response = await result.response;
-    const rawText = response.text() || '';
+    const { text: rawText } = await callLLM(SCHEMA_CONTEXT, message);
     
     // Clean up markdown markers if LLM adds them
-    let cleanedText = rawText.trim();
-    if (cleanedText.startsWith('```json')) {
-      cleanedText = cleanedText.substring(7);
-      if (cleanedText.endsWith('```')) {
-        cleanedText = cleanedText.substring(0, cleanedText.length - 3);
-      }
-    } else if (cleanedText.startsWith('```')) {
-      cleanedText = cleanedText.substring(3);
-      if (cleanedText.endsWith('```')) {
-        cleanedText = cleanedText.substring(0, cleanedText.length - 3);
-      }
-    }
+    let cleanedText = rawText.trim().replace(/^```json\n?/, '').replace(/\n?```$/, '');
     
     let parsedParams;
     try {
@@ -79,50 +142,34 @@ export async function POST(req: Request) {
       return NextResponse.json({ response: 'Sorry, I couldn`t formulate a query for that. Please try rephrasing.' });
     }
 
-    if (parsedParams.error) {
-      return NextResponse.json({ response: parsedParams.error });
-    }
-
-    if (!parsedParams.sql) {
-      return NextResponse.json({ response: 'I could not generate a valid query for your request.' });
-    }
+    if (parsedParams.error) return NextResponse.json({ response: parsedParams.error });
+    if (!parsedParams.sql) return NextResponse.json({ response: 'I could not generate a valid query.' });
 
     // Phase 2: Execute SQL safely (Read Only)
     let sqlResults;
     try {
       const db = getDb();
-      // Only allow SELECT statements
       if (!parsedParams.sql.trim().toUpperCase().startsWith('SELECT')) {
          return NextResponse.json({ response: 'Only SELECT queries are permitted.' });
       }
       sqlResults = db.prepare(parsedParams.sql).all();
     } catch (dbError: any) {
-      return NextResponse.json({ response: `Query failed: ${dbError.message}\n\nAttempted SQL:\n${parsedParams.sql}` });
+      return NextResponse.json({ response: `Query failed: ${dbError.message}` });
     }
 
-    // Limit results if too large
+    // Limit results
     if (sqlResults.length > 50) {
       sqlResults = sqlResults.slice(0, 50);
-      sqlResults.push({ _note_: 'Results truncated to top 50 rows for display.' });
+      sqlResults.push({ _note_: 'Truncated to top 50 rows.' });
     }
 
-    // Phase 3: NL Generation from SQL Results
-    const finalPrompt = `
-User Question: ${message}
-Generated SQL: ${parsedParams.sql}
-Query Results (JSON): ${JSON.stringify(sqlResults)}
-
-Based on the query results, provide a clear, natural language answer to the user's question. 
-If the results refer to document numbers, format them clearly. Mention explicitly if the result was truncated.
-Make the final answer directly address the question without showing the raw JSON.
-`;
-
-    const finalResult = await model.generateContent(finalPrompt);
-    const finalResponse = await finalResult.response;
+    // Phase 3: NL Generation
+    const finalPrompt = `User Question: ${message}\nSQL Results: ${JSON.stringify(sqlResults)}\n\nBased on these results, provide a clear, professional answer to the user.`;
+    const { text: finalAnswer, provider } = await callLLM("You are a helpful SAP analyst. Summarize data clearly.", finalPrompt);
 
     return NextResponse.json({ 
-      response: finalResponse.text(),
-      debug: { sql: parsedParams.sql, data: sqlResults }
+      response: finalAnswer,
+      debug: { provider, sql: parsedParams.sql }
     });
 
   } catch (error: any) {
