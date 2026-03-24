@@ -20,12 +20,16 @@ Why SQLite?
 • Zero Configuration: No separate database servers are needed. The database is generated and queried natively in Node.js.
 • Relational Graph Modeling: Complex SAP dependencies map flawlessly to relational tables. 
 
-LLM Prompts & Strategy
-We use Google Gemini 2.5 Flash (@google/genai). The strategy is a 3-phase Text-to-SQL Pipeline:
-• Schema Injection: We provide the LLM exactly 9 core SAP tables and their primary and foreign keys in the system prompt.
-• Translation: The user's Natural Language request is converted by the LLM strictly into a JSON containing sql and explanation.
-• Execution & Final Synthesis: The Next.js backend intercepts the SQL, strictly validates it's a SELECT query, executes it locally via better-sqlite3, and then feeds the raw JSON query results back to the LLM. 
+LLM Strategy: Dual-Provider (Groq + Gemini)
+To ensure maximum reliability and speed, the system implements a dual-LLM strategy:
+• Primary Provider: Groq (Llama-3.3-70b). Used for its extreme inference speed and structured JSON performance. 
+• Fallback Provider: Google Gemini 1.5 Flash (@google/genai). Automatically triggered if Groq fails or rate limits are reached.
+• Model Fallback: Within the Gemini flow, the system handles "404 Not Found" errors by dynamically switching between gemini-1.5-flash and the stable gemini-pro.
 
+3-Phase Text-to-SQL Pipeline:
+• Schema Injection: We provide the LLM exactly 9 core SAP tables and their primary and foreign keys in the system prompt.
+• Translation: The user's Natural Language request is converted strictly into a JSON containing sql and explanation.
+• Execution & Final Synthesis: The Next.js backend executes the SQL locally via better-sqlite3, and feeds the raw results back to the LLM for a natural language summary.
 Guardrails
 The system utilizes robust structural guardrails at the Prompt level:
 • The system instructions strictly demand that off-topic queries MUST trigger a direct error JSON rejection.
@@ -34,7 +38,9 @@ The system utilizes robust structural guardrails at the Prompt level:
 Setup Instructions
 • Install Dependencies: npm install
 • Initialize Database: node src/scripts/init_db.js
-• Configure Environment: Create a .env.local file and add GEMINI_API_KEY=your_key
+• Configure Environment: Create a .env.local file and add:
+  GEMINI_API_KEY=your_key
+  GROK_API_KEY=your_groq_key_starting_with_gsk
 • Run Development Server: npm run dev
 • Access the App: Open http://localhost:3000
 
