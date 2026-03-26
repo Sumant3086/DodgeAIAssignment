@@ -48,6 +48,14 @@ Detailed documentation of the development process visual refinements and final v
 • Project Walkthrough A comprehensive look at the final implementation layout fixes and visual parity refinements.
 • Verification Media Screenshots and recordings of the system in action are stored in the sessions folder.
 
+SCREENSHOTS
+
+Query Interface
+![Query Interface](query.png)
+
+Delivery Details
+![Delivery Details](Delivery.png)
+
 EXAMPLE QUERIES
 You can interact with the system using natural language. For best results include specific IDs like Sales Order 740506.
 
